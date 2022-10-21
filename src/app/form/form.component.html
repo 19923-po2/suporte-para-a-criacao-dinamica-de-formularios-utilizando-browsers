@@ -1,24 +1,11 @@
-<h1>Lista de UCs</h1> 
-
-<div id="list">
-  <p id="1-label">Item 1</p>
-  <input type="text" id="1-item">
-</div>
-
-<br>
-<div>
-<button id="addItem" (click)="addItem()">Adicionar item</button><br><br>
-<button id="deleteItem" (click)="deleteItem()">Eliminar último item</button><br><br>
-</div>
-
-<div>
-<h2>Guardar dados num ficheiro</h2>
-<button id="save" (click)="saveToJSONFile()">Guardar para ficheiro JSON</button>
-</div>
-
-<h2>Carregar dados de ficheiro JSON</h2>
-    <div>
-        <label for="file">Select a file:</label>
-        <input type="file" id="jsonfile" name="file" (change)="uploadFile()" accept=".json"/>
-        <button>Submit</button>
+<main class="container" id="main">
+  <!--h1> Planeamento da Unidade Curricular</h1>
+  <div class="container" id="buttons">
+    <div class="d-inline p-2">
+      <button type="button" class="btn btn-primary" id="saveJSON" (click)="saveToJSONFile()">Save JSON</button>
     </div>
+    <div class="d-inline p-2">
+      <input class="btn btn-primary" type="file" id="jsonfile" name="file" (change)="uploadFile()" accept=".json"/>
+    </div>
+  </div-->
+</main>
