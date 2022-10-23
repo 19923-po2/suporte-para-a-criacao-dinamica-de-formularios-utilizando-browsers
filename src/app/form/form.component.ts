@@ -1,7 +1,4 @@
 import { Component, Directive, OnInit } from '@angular/core';
-import { create } from 'domain';
-import { json } from 'stream/consumers';
-import { threadId } from 'worker_threads';
 
 @Component({
   selector: 'app-form',
@@ -10,15 +7,13 @@ import { threadId } from 'worker_threads';
 })
 
 export class FormComponent implements OnInit {
-
   
   constructor() {
-
   }
 
   ngOnInit(): void {
-    const ucForm = new Form("ucForm","Planeamento da Unidade Curricular"); // Formulario
-    ucForm.addLabelInput("ucNameFormGroup",new Label("Nome da UC","ucName"),new Input("ucName","text")); // FormGroup Nome UC
+    const ucForm = new Form("ucForm","Planeamento da Unidades Curricular"); // Formulario
+    ucForm.addLabelInputGroup("ucName",new Label("Nome da UC","ucName"),new Input("ucName","text"));
     const list = ucForm.addList("contentsList","Conteúdos"); // Lista de Conteúdos
     ucForm.addList("goalsList","Objetivos",list); // Lista de Objetivos com referência à lista de conteúdos
     ucForm.show();
@@ -26,7 +21,168 @@ export class FormComponent implements OnInit {
 }
 
 /**************************************************************/ 
+export class Form {
+  id: string;
+  title: Title;
+  contents: (List | LabelInputGroup)[];
 
+  constructor(id: string,title: string) {
+    this.id = id;
+    this.title = new Title(id+"-title",title,["text-center","p-2"]);
+    this.contents = [];
+  }
+  
+  show(){
+    const formElement = this.html(); 
+    document.getElementById("main")?.appendChild(formElement);
+  }
+
+  update(){
+    //console.log("update");
+    document.getElementById("main")!!.innerHTML = "";
+    this.show();
+  }
+
+  // https://stackoverflow.com/questions/34504050/how-to-convert-selected-html-to-json
+  downloadJsonFile(arg: { fileName: string, text: string; }) {
+    var dynamicDownload = document.createElement('a');
+    const element = dynamicDownload;
+    const fileType = arg.fileName.indexOf('.json') > -1 ? 'text/json' : 'text/plain';
+    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(arg.text)}`);
+    element.setAttribute('download', arg.fileName);
+
+    var event = new MouseEvent("click");
+    element.dispatchEvent(event);
+  }
+
+  downloadTxtFile(arg: { fileName: string, text: string; }){
+    var dynamicDownload = document.createElement('a');
+    const element = dynamicDownload;
+    const fileType = arg.fileName.indexOf('.txt') > -1 ? 'text/txt' : 'text/plain';
+    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(arg.text)}`);
+    element.setAttribute('download', arg.fileName);
+
+    var event = new MouseEvent("click");
+    element.dispatchEvent(event);
+    
+  }
+
+  // https://bobbyhadz.com/blog/typescript-left-hand-side-of-assignment-not-optional
+  uploadFile(form:Form): void {
+    var importedFile  = (document.getElementById('jsonfile') as HTMLInputElement)?.files?.item(0);
+    var reader = new FileReader();
+    reader.readAsText(importedFile as Blob);
+    reader.onload = function() {
+      const fileContent = JSON.parse(reader.result as string);
+      form = new Form(fileContent.id, fileContent.title.textContent);
+      form.contents = [];
+      if(fileContent.contents.length > 0){
+        for(let i = 0; i< fileContent.contents.length; i++){
+          const content = fileContent.contents[i];
+          if(content.hasOwnProperty('label')){
+          //ucForm.addLabelInputGroup("ucNameFormGroup",new Label("Nome da UC","ucName"),new Input("ucName","text")); // FormGroup Nome UC
+          form.addLabelInputGroup(content.id,new Label(content.label.textContent,content.label.forInput,content.label.classes),new Input(content.input.id,content.input.type,content.input.classes,content.input.value));
+          }
+          else if(content.hasOwnProperty('title')){
+            var list;
+            var referenceList;
+            if(content.hasOwnProperty('referenceList')){
+                    form.contents.forEach(element => {if(element.id = content.referenceList.id && element instanceof List){referenceList = element;}})
+                    list = form.addList(content.id,content.title,referenceList);  
+            }
+            else {
+              list = form.addList(content.id,content.title,referenceList);
+            }
+            if(content.items.length > 0){
+                var items = [];
+              for(let i = 0; i< content.items.length; i++){
+                const itemJson = content.items[i];
+                    const item = new Item(itemJson.label.textContent as number,itemJson.id,itemJson.hasAddBtn,itemJson.hasRmvBtn,referenceList);
+                    item.input.value = itemJson.input.value;
+                    items.push(item);
+                  //}
+              }
+              list.items = items;
+            }
+            
+          }
+        }
+      }
+      console.log(form.contents);
+      form.update();
+  }
+  }
+
+  //addLabelInput
+  addLabelInputGroup(id: string, label: Label, input: Input): LabelInputGroup{
+    const labelInputGroup = new LabelInputGroup(id, label, input);
+    this.contents.push(labelInputGroup);
+    return labelInputGroup;
+  }
+
+  //addList
+  addList(id: string, title: string, referenceList? : List): List{
+    const list = new List(id, title,referenceList);
+    this.contents.push(list);
+    return list;
+  }
+
+  createButtonsHtml(): HTMLDivElement{
+    const buttonsDivHtml = new Div("buttonsDiv",["container"]).html();
+    const saveJsonDivHtml = new Div("saveJsonDiv",["d-inline","p-2"]).html();
+    const uploadJsonDivHtml = new Div("uploadJsonDiv",["d-inline","p-2"]).html();
+
+    const saveJsonBtnHtml = new Button("Save JSON").html();
+    saveJsonBtnHtml.addEventListener("click",()=>this.downloadJsonFile({ fileName: 'Dados.json', text: JSON.stringify(this)}));
+    
+    const uploadJsonBtnHtml = new Input("jsonfile","file",["btn","btn-primary"]).html();
+    uploadJsonBtnHtml.name = "file";
+    uploadJsonBtnHtml.accept = ".json";
+    //<input class="btn btn-primary" type="file" id="jsonfile" name="file" (change)="uploadFile()" accept=".json"/>
+    uploadJsonBtnHtml.addEventListener("change",()=>this.uploadFile(this));
+    
+    const txtBtnHtml = new Button("Download Text").html();
+    txtBtnHtml.addEventListener("click",()=>this.downloadTxtFile({fileName: 'Texto.txt', text: this.text()}));
+    saveJsonDivHtml.appendChild(saveJsonBtnHtml);
+    uploadJsonDivHtml.appendChild(uploadJsonBtnHtml);
+    buttonsDivHtml.append(saveJsonDivHtml,uploadJsonDivHtml, txtBtnHtml);
+
+    return buttonsDivHtml;
+  }
+  
+  text(){
+    var string = "---- "+ this.title.textContent + " ----" + "\n";
+    this.contents.forEach(element => string += element.text() + "\n");
+    return string;
+  }
+
+  html(): HTMLElement{
+    const form = document.createElement("form");
+    form.id = this.id;
+    form.classList.add("m-3","border", "border-dark");
+
+    form.append(this.title.html());
+
+    form.appendChild(this.createButtonsHtml());
+
+    for(let i = 0; i < this.contents.length; i++){
+      const html = this.contents[i].html();
+      var buttons = Array.from(html.getElementsByTagName("button"));
+      var inputs = Array.from(html.getElementsByTagName("input"));
+      inputs.forEach(element => {
+        if(element.classList.contains("form-check-input")){
+          inputs = inputs.splice(inputs.indexOf(element), 1);
+        }
+      });
+      console.log(inputs.length);
+      buttons.forEach(element => element.addEventListener("click",() =>  this.update()));
+      inputs.forEach(element => element.addEventListener("change",() =>  this.update()));
+      form.appendChild(html);
+    }
+
+    return form;
+  }
+}
 export class Title{
   id: string;
   textContent: string;
@@ -61,137 +217,6 @@ export class Div {
     div.id = this.id;
     this.classes.forEach(element => div.classList.add(element));
     return div;
-  }
-}
-export class Form {
-  id: string;
-  title: Title;
-  contents: (List | FormGroup)[];
-
-  constructor(id: string,title: string) {
-    this.id = id;
-    this.title = new Title(id+"-title",title,["text-center","p-2"]);
-    this.contents = [];
-  }
-  
-  show(){
-    const formElement = this.html(); 
-    document.getElementById("main")?.appendChild(formElement);
-  }
-
-  // https://stackoverflow.com/questions/34504050/how-to-convert-selected-html-to-json
-  downloadJsonFile(arg: { fileName: string, text: string; }) {
-    var dynamicDownload = document.createElement('a');
-    const element = dynamicDownload;
-    const fileType = arg.fileName.indexOf('.json') > -1 ? 'text/json' : 'text/plain';
-    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(arg.text)}`);
-    element.setAttribute('download', arg.fileName);
-
-    var event = new MouseEvent("click");
-    element.dispatchEvent(event);
-  }
-
-  // https://bobbyhadz.com/blog/typescript-left-hand-side-of-assignment-not-optional
-  uploadFile(form:Form): void {
-    var importedFile  = (document.getElementById('jsonfile') as HTMLInputElement)?.files?.item(0);
-    var reader = new FileReader();
-    reader.readAsText(importedFile as Blob);
-    reader.onload = function() {
-      const fileContent = JSON.parse(reader.result as string);
-      form.id = fileContent.id;
-      form.contents = fileContent.contents;
-      //form.update(form.show());
-      console.log(fileContent);
-      console.log(form);
-    //document.getElementById("form")!!.innerHTML = fileContent.html;
-  }
-  }
-
-  //addLabelInput
-  addLabelInput(id: string, label: Label, input: Input): FormGroup{
-    const formGroup = new FormGroup(id, label, input);
-    this.contents.push(formGroup);
-    return formGroup;
-  }
-
-  //addList
-  addList(id: string, title: string, referenceList? : List): List{
-    const list = new List(id, title,referenceList);
-    this.contents.push(list);
-    return list;
-  }
-
-  createButtonsHtml(): HTMLDivElement{
-    const buttonsDivHtml = new Div("buttonsDiv",["container"]).html();
-    const saveJsonDivHtml = new Div("saveJsonDiv",["d-inline","p-2"]).html();
-    const uploadJsonDivHtml = new Div("uploadJsonDiv",["d-inline","p-2"]).html();
-    const saveJsonBtnHtml = new Btn("Save JSON").html();
-    saveJsonBtnHtml.addEventListener("click",()=>this.downloadJsonFile({ fileName: 'Dados.json', text: JSON.stringify(this)}));
-    
-    const uploadJsonBtnHtml = new Input("jsonfile","file",["btn","btn-primary"]).html();
-    uploadJsonBtnHtml.name = "file";
-    uploadJsonBtnHtml.accept = ".json";
-    //<input class="btn btn-primary" type="file" id="jsonfile" name="file" (change)="uploadFile()" accept=".json"/>
-    saveJsonBtnHtml.addEventListener("click",()=>this.uploadFile(this));
-    
-    const txtBtnHtml = new Btn("Download Text").html();
-    saveJsonDivHtml.appendChild(saveJsonBtnHtml);
-    uploadJsonDivHtml.appendChild(uploadJsonBtnHtml);
-    buttonsDivHtml.append(saveJsonDivHtml,uploadJsonDivHtml, txtBtnHtml);
-
-    return buttonsDivHtml;
-  }
-
-
-
-  html(): HTMLElement{
-    const form = document.createElement("form");
-    form.id = this.id;
-    form.classList.add("m-3","border", "border-dark");
-
-    form.append(this.title.html());
-
-    form.appendChild(this.createButtonsHtml());
-
-    for(let i = 0; i < this.contents.length; i++){
-      const html = this.contents[i].html();
-      const buttons = Array.from(html.getElementsByTagName("button"));
-      const inputs = Array.from(html.getElementsByTagName("input"));
-      buttons.forEach(element => element.addEventListener("click",() =>  this.update(form)));
-      inputs.forEach(element => element.addEventListener("change",() =>  this.update(form)));
-      form.appendChild(html);
-    }
-    //const saveJSONBtn = this.saveJSONBtn.html();
-    //saveJSONBtn.addEventListener("change",() =>  this.createJsonFile({ fileName: 'Dados.json', text: JSON.stringify(this)}));
-    return form;
-  }
-
-  update(form: HTMLElement){
-    form.innerHTML = "";
-    for(let i = 0; i < this.contents.length; i++){
-      const html = this.contents[i].html();
-      const buttons = Array.from(html.getElementsByTagName("button"));
-      const inputs = Array.from(html.getElementsByTagName("input"));
-      buttons.forEach(element => element.addEventListener("click",() =>  this.update(form)));
-      inputs.forEach(element => element.addEventListener("change",() =>  this.update(form)));
-      form.appendChild(html);
-    }
-  }
-}
-
-export class Btn{
-  textContent : string;
-
-  constructor(textContent: string) { 
-    this.textContent = textContent;
-  }
-
-  html(){
-    const button = document.createElement("button");
-    button.textContent = this.textContent;
-    button.type = "button";
-    button.classList.add("btn","btn-primary");
-    return button;
   }
 }
 
@@ -244,7 +269,7 @@ export class Label {
   }
 }
 
-export class FormGroup {
+export class LabelInputGroup {
   id : string;
   label : Label;
   input: Input;
@@ -256,9 +281,7 @@ export class FormGroup {
   }
 
   html(){
-      const div = document.createElement("div");
-      div.classList.add("form-group","p-3");
-      div.id = this.id;
+      const div = new Div(this.id,["form-group","p-3"]).html();
       div.append(this.label.html(),this.input.html());
       return div;
     }
@@ -282,10 +305,8 @@ export class Checkbox {
   }
 
   html(){
-    console.log("HTML");
-    console.log(this.textContent);
-    const div = document.createElement("div");
-    div.className = "form-check";
+    
+    const div = new Div(this.id+"-checkbox",["form-check"]).html();
 
     const input = new Input(this.id,"checkbox",["form-check-input"]);
     div.addEventListener("change", () => this.checked = this.setChecked()); // altera valor quando o utilizador escreve no input
@@ -309,42 +330,30 @@ export class Checkbox {
   }
 }
 
-
 export class Button {
   textContent : string;
-  list: List;
-  referenceList: List | undefined;
 
-  constructor(textContent: string, list: List, referenceList?: List) { 
+  constructor(textContent: string) { 
     this.textContent = textContent;
-    this.list = list;
-    this.referenceList = referenceList;
   }
 
   html(){
     const button = document.createElement("button");
     button.textContent = this.textContent;
     button.type = "button";
-    button.classList.add("btn","btn-primary");
-    if(this.textContent == "-"){
-      button.addEventListener("click",() => this.list?.deleteItem());
-    }
-    if(this.textContent == "+"){
-      button.addEventListener("click",() =>  this.list?.createItem(this.list.items.length + 1,this.list.id+"-item",true,true,this.referenceList));
-    }
+    button.classList.add("btn","btn-primary")
     return button;
   }
 }
 
 export class Dropdown {
   btnText : string;
-  checkboxes: Checkbox[];
+  options: string[];
+  //checkboxes: Checkbox[];
 
   constructor(btnText: string, options : string[]) { 
     this.btnText = btnText;
-    this.checkboxes = [];
-    options.forEach(element => this.checkboxes.push(new Checkbox("checkboxID",element)));
-    console.log(options[0]);
+    this.options = options;
   }
 
   html(){
@@ -358,59 +367,57 @@ export class Dropdown {
     const aa = document.createElement("a");
     aa.classList.add("dropdown-item");
     aa.href="#"
-    this.checkboxes.forEach(element => aa.append(element.html()));
+    this.options.forEach(element => {if(element != "")aa.append(new Checkbox("checkboxID",element).html())});
     li.appendChild(aa)
     ul.appendChild(li);
     div.appendChild(ul);
     return div;
-  }
-
-  addOption(option: string){
-    this.checkboxes.push(new Checkbox("checkboxID",option));
-  }
-
-  updateOptions(options: string[]){
-    this.checkboxes = [];
-    options.forEach(element => this.checkboxes.push(new Checkbox("checkboxID",element)));
-    console.log(options[0]);
   }
 }
 
 export class List {
   id: string;
   title: string;
+  referenceList: List | undefined;
   items: Item[];
-  listThatUsesThisForReferences: List | undefined;
-  referenceList = List;
   
   constructor(id: string, title: string, referenceList? : List) {
-    referenceList?.usedAsReference(this);
     this.id = id;
     this.title = title;
     this.items = [];
-    const firstItem = new Item(this.items.length + 1,this.id+"-item",true,false,this,referenceList);
-    this.items.push(firstItem);
+    this.referenceList = referenceList;
+    this.addItem(this.items.length + 1,true,false,this.referenceList);
   }
   
   html(): HTMLElement{
-    var list = document.createElement("div");
-    list.classList.add("list-group","m-3","p-3","border", "border-dark");
-    list.id = this.id;
+    var list = new Div(this.id,["list-group","m-3","p-3","border", "border-dark"]).html();
     list.append(this.title);
-    var items = document.createElement("div");
+
+    var itemsDiv = document.createElement("div");
+
     for(let i = 0; i < this.items.length; i++){
-      var item = this.items[i].html();
-      if(this.listThatUsesThisForReferences != undefined){
-        item.addEventListener("change",() => this.listThatUsesThisForReferences?.updateReferences(this),false);
+      if(this.referenceList != undefined){
+        this.items[i].updateReferences(this.referenceList);
       }
-      items.append(item);
+      var itemHTML = this.items[i].html();
+      var buttons = Array.from(itemHTML.getElementsByTagName("button"));
+      buttons.forEach(
+        element =>  { 
+          if(element.textContent == "+"){
+            element.addEventListener("click",() =>  this.addItem(this.items.length + 1,true,true,this.referenceList));
+          }
+          else if(element.textContent == "-"){
+            element.addEventListener("click",() => this.deleteItem());
+          }
+      })
+      itemsDiv.append(itemHTML);
     }
-    list.append(items);
+    list.append(itemsDiv);
     return list;
   }
   
-  createItem(id: number, title: string,hasAddBtn:boolean,hasRmvBtn:boolean,referenceList? : List){
-    const item = new Item(id,title,hasAddBtn,hasRmvBtn,this,referenceList);
+  addItem(number: number, hasAddBtn:boolean,hasRmvBtn:boolean,referenceList? : List){
+    const item = new Item(number,this.id+'-item-'+number,hasAddBtn,hasRmvBtn,referenceList);
     this.items.push(item);
   }
 
@@ -418,47 +425,44 @@ export class List {
     this.items.pop();
   }
 
-  updateReferences(list:List){
-    this.items.forEach(element => element.updateReferences(list));
-  }
-
-  usedAsReference(list:List){
-    this.listThatUsesThisForReferences = list;
-  }
   text(){
-    return this.title;
+    var text = this.title + "\n";
+    this.items.forEach(element => text += element.label.textContent +":" +element.input.value + "\n");
+    return text;
   }
 }
 
 export class Item {
-  itemID: string;
+  id: string;
   label: Label;
   input: Input;
-  addBtn: Button | undefined;
-  rmvBtn: Button | undefined;
-  referencesDropdown: Dropdown | undefined;
+  hasAddBtn: boolean;
+  hasRmvBtn: boolean;
+  refDropdown: Dropdown | undefined;
 
-  constructor(number: number, itemID: string, hasAddBtn: boolean, hasRmvBtn: boolean, list: List, referenceList? : List ) {
-    this.itemID = itemID;
-    this.label = new Label(""+number,itemID + "-" + number,["form-control"]);
-    this.input = new Input(this.itemID + "-" + number,"text");
-    if(hasAddBtn){
-      //this.addBtn = new Button("+",list,referenceList);
-    }
-    if(hasRmvBtn){
-      //this.rmvBtn = new Button("-",list,referenceList);
-    }
+  constructor(number: number, id: string, hasAddBtn: boolean, hasRmvBtn: boolean, referenceList? : List ) {
+    this.id = id;
+    this.label = new Label(""+number,id,["form-control"]);
+    this.input = new Input(id,"text");
+    this.hasAddBtn = hasAddBtn;
+    this.hasRmvBtn = hasRmvBtn;
     if(referenceList != undefined){
-    this.updateReferences(referenceList);
+      var options = [];
+      for(let i = 0; i < referenceList.items.length; ++i){
+        options.push(referenceList.items[i].input.value);
+      }
+      this.refDropdown = new Dropdown("Escolha as opções",options);
     }
   }
 
   updateReferences(referenceList: List){
+    if(this.refDropdown != undefined){
     var options = [];
-    for(let i = 0; i < referenceList.items.length; ++i){
-      options.push(referenceList.items[i].input.value);
+      for(let i = 0; i < referenceList.items.length; ++i){
+        options.push(referenceList.items[i].input.value);
+      }
+      this.refDropdown.options = options;
     }
-    this.referencesDropdown = new Dropdown("Escolha as opções",options);
   }
   
   html(){
@@ -470,37 +474,31 @@ export class Item {
 
     item.appendChild(div);
 
-    var labelDiv = document.createElement("div");
-    labelDiv.classList.add("p-2");
+    var labelDiv = new Div(this.id+"-label",["p-2"]).html();
     labelDiv.appendChild(this.label.html());
 
-    var inputDiv = document.createElement("div");
-    inputDiv.classList.add("p-2");
+    var inputDiv = new Div(this.id+"-input",["p-2"]).html();
     inputDiv.appendChild(this.input.html());
 
     div.append(labelDiv,inputDiv);
 
-    if(this.addBtn != undefined){
-    var addBtnDiv = document.createElement("div");
-    addBtnDiv.classList.add("p-2");
-    addBtnDiv.appendChild(this.addBtn.html());
+    if(this.hasAddBtn){
+    var addBtnDiv = new Div(this.id+"-addBtn",["p-2"]).html();
+    addBtnDiv.appendChild(new Button("+").html());
     div.append(addBtnDiv);
     }
-
-    if(this.rmvBtn != undefined){
-    var rmvBtnDiv = document.createElement("div");
-    rmvBtnDiv.classList.add("p-2");
-    rmvBtnDiv.appendChild(this.rmvBtn.html());
+    if(this.hasRmvBtn){
+    var rmvBtnDiv = new Div(this.id+"-rmvBtn",["p-2"]).html();
+    rmvBtnDiv.appendChild(new Button("-").html());
     div.append(rmvBtnDiv);
     }
-    
-    if(this.referencesDropdown != undefined){
-    var contentReferences = document.createElement("div");
-    var titleReferences = document.createElement("p");
-    titleReferences.textContent = "Conteúdos";
-    contentReferences.append(titleReferences);
-    item.append(contentReferences,this.referencesDropdown.html());
-    console.log(this.referencesDropdown.html());
+
+    if(this.refDropdown != undefined){
+      var contentReferences = document.createElement("div");
+      var titleReferences = document.createElement("p");
+      titleReferences.textContent = "Conteúdos";
+      contentReferences.append(titleReferences);
+      item.append(contentReferences,this.refDropdown.html());
     }
     return item;
   }
