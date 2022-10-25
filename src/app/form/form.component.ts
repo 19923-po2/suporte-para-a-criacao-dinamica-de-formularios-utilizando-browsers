@@ -1,4 +1,4 @@
-import { Component, Directive, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-form',
@@ -12,24 +12,38 @@ export class FormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const ucForm = new Form("ucForm","Planeamento da Unidades Curricular"); // Formulario
-    ucForm.addLabelInputGroup("ucName",new Label("Nome da UC","ucName"),new Input("ucName","text"));
-    const list = ucForm.addList("contentsList","Conteúdos"); // Lista de Conteúdos
-    ucForm.addList("goalsList","Objetivos",list); // Lista de Objetivos com referência à lista de conteúdos
-    ucForm.show();
+    const ucForm = new Form("ucForm","Planeamento da Unidades Curricular"); // ID e Title
+    ucForm.addLabelInputGroup("ucName","Nome da UC"); // ID e Title
+    const list = ucForm.addList("contentsList","Conteúdos"); // ID e Title
+    ucForm.addList("goalsList","Objetivos",list); //ID, Title e referenceList
+    ucForm.show(); // Show
   }  
 }
 
 /**************************************************************/ 
+
 export class Form {
   id: string;
-  title: Title;
+  title: string;
   contents: (List | LabelInputGroup)[];
 
-  constructor(id: string,title: string) {
+  constructor(id: string, title: string) {
     this.id = id;
-    this.title = new Title(id+"-title",title,["text-center","p-2"]);
+    this.title = title;
     this.contents = [];
+  }
+  
+  addLabelInputGroup(id: string, title: string): LabelInputGroup{
+    const inputId = id+"Input";
+    const labelInputGroup = new LabelInputGroup(id, new Label(title, inputId), new Input(inputId,"text"));
+    this.contents.push(labelInputGroup);
+    return labelInputGroup;
+  }
+
+  addList(id: string, title: string, referenceList? : List): List{
+    const list = new List(id, title , referenceList);
+    this.contents.push(list);
+    return list;
   }
   
   show(){
@@ -81,7 +95,7 @@ export class Form {
           const content = fileContent.contents[i];
           if(content.hasOwnProperty('label')){
           //ucForm.addLabelInputGroup("ucNameFormGroup",new Label("Nome da UC","ucName"),new Input("ucName","text")); // FormGroup Nome UC
-          form.addLabelInputGroup(content.id,new Label(content.label.textContent,content.label.forInput,content.label.classes),new Input(content.input.id,content.input.type,content.input.classes,content.input.value));
+          //form.addLabelInputGroup(content.id,new Label(content.label.textContent,content.label.forInput,content.label.classes),new Input(content.input.id,content.input.type,content.input.classes,content.input.value));
           }
           else if(content.hasOwnProperty('title')){
             var list;
@@ -97,7 +111,7 @@ export class Form {
                 var items = [];
               for(let i = 0; i< content.items.length; i++){
                 const itemJson = content.items[i];
-                    const item = new Item(itemJson.label.textContent as number,itemJson.id,itemJson.hasAddBtn,itemJson.hasRmvBtn,referenceList);
+                    const item = new Item(itemJson.label.textContent as number,itemJson.hasAddBtn,itemJson.hasRmvBtn,content);
                     item.input.value = itemJson.input.value;
                     items.push(item);
                   //}
@@ -111,20 +125,6 @@ export class Form {
       console.log(form.contents);
       form.update();
   }
-  }
-
-  //addLabelInput
-  addLabelInputGroup(id: string, label: Label, input: Input): LabelInputGroup{
-    const labelInputGroup = new LabelInputGroup(id, label, input);
-    this.contents.push(labelInputGroup);
-    return labelInputGroup;
-  }
-
-  //addList
-  addList(id: string, title: string, referenceList? : List): List{
-    const list = new List(id, title,referenceList);
-    this.contents.push(list);
-    return list;
   }
 
   createButtonsHtml(): HTMLDivElement{
@@ -151,7 +151,7 @@ export class Form {
   }
   
   text(){
-    var string = "---- "+ this.title.textContent + " ----" + "\n";
+    var string = "---- "+ this.title + " ----" + "\n";
     this.contents.forEach(element => string += element.text() + "\n");
     return string;
   }
@@ -161,7 +161,7 @@ export class Form {
     form.id = this.id;
     form.classList.add("m-3","border", "border-dark");
 
-    form.append(this.title.html());
+    form.append(new Title(this.id+"Title",this.title).html());
 
     form.appendChild(this.createButtonsHtml());
 
@@ -171,7 +171,7 @@ export class Form {
       var inputs = Array.from(html.getElementsByTagName("input"));
       inputs.forEach(element => {
         if(element.classList.contains("form-check-input")){
-          inputs = inputs.splice(inputs.indexOf(element), 1);
+          inputs = inputs.splice(inputs.indexOf(element)-1, 1);
         }
       });
       console.log(inputs.length);
@@ -183,23 +183,115 @@ export class Form {
     return form;
   }
 }
+
+export class LabelInputGroup {
+  id : string;
+  label : Label;
+  input: Input;
+
+  constructor(id: string, label: Label, input: Input) { 
+    this.id = id;
+    this.label = label;
+    this.input = input;
+  }
+
+  html(){
+      const div = new Div(this.id,["m-3","p-3","border","border-dark"]).html();
+      div.append(this.label.html(),this.input.html());
+      return div;
+    }
+
+  text(){
+    const text = this.label.textContent + ": " + this.input.value;
+    return text;
+  }
+  
+}
+
 export class Title{
   id: string;
   textContent: string;
-  classes: string[]
 
-  constructor(id: string, textContent: string, classes: string[]){
+  constructor(id: string, textContent: string){
     this.id = id;
     this.textContent= textContent;
-    this.classes = classes;
   }
 
   html(){
     const title = document.createElement("h1");
     title.id = this.id;
-    this.classes.forEach(element => title.classList.add(element));
     title.textContent = this.textContent;
+    title.classList.add("text-center","p-2");
     return title;
+  }
+}
+
+export class ListTitle{
+  id: string;
+  textContent: string;
+
+  constructor(id: string, textContent: string){
+    this.id = id;
+    this.textContent= textContent;
+  }
+
+  html(){
+    const title = document.createElement("h5");
+    title.id = this.id;
+    title.textContent = this.textContent;
+    title.classList.add("p-2");
+    return title;
+  }
+}
+
+export class Input {
+  id : string;
+  type : string;
+  classes: string[] | undefined;
+  value: string;
+  checked: boolean;
+
+  constructor(id: string, type: string, classes: string[] = ["form-control"], value: string = "", checked: boolean = false) { 
+    this.id = id;
+    this.type = type;
+    this.classes = classes;
+    this.value = value;
+    this.checked = checked;
+  }
+
+  setChecked(checked: boolean){
+    this.checked = checked;
+  }
+
+  html() : HTMLInputElement {
+    const input = document.createElement("input");
+    input.id = this.id;
+    input.type = this.type;
+    input.value = this.value;
+    input.checked = this.checked;
+    input.addEventListener("change", () => {this.value = input.value, this.checked = input.checked});
+    if(this.classes != undefined){this.classes.forEach(element => input.classList.add(element))};
+    return input;
+  }
+}
+
+export class Label {
+  textContent : string;
+  forInput : string;
+  classes : string[] | undefined;
+
+  constructor(textContent: string, forInput: string, classes?: string[]) { 
+    this.textContent = textContent;
+    this.forInput = forInput;
+    this.classes = classes;
+  }
+
+  html() : HTMLLabelElement {
+    const label = document.createElement("label");
+    label.textContent = this.textContent;
+    label.htmlFor = this.forInput;
+    if(this.classes != undefined){this.classes.forEach(element => label.classList.add(element))};
+    return label;
   }
 }
 
@@ -220,116 +312,6 @@ export class Div {
   }
 }
 
-export class Input {
-  id : string;
-  type : string;
-  value: string;
-  classes: string[];
-
-  constructor(id: string, type: string, classes : string[] = ["form-control"] , value: string = "") { 
-    this.id = id;
-    this.type = type;
-    this.value = value;
-    this.classes = classes;
-  }
-
-  html() : HTMLInputElement {
-    const input = document.createElement("input");
-    input.type = this.type;
-    input.id = this.id;
-    input.setAttribute("value",this.value);
-    this.classes.forEach(element => input.classList.add(element));
-    input.addEventListener("change", () =>  this.updateValue(input)); // altera valor quando o utilizador escreve no input
-    return input
-  }
-
-  updateValue(input: HTMLInputElement){
-    input.setAttribute("value",input.value); 
-    this.value = input.value;
-  }
-}
-
-export class Label {
-  textContent : string;
-  forInput : string;
-  classes: string[];
-
-  constructor(textContent: string, forInput: string, classes : string[] = []) { 
-    this.textContent = textContent;
-    this.forInput = forInput;
-    this.classes = classes;
-  }
-
-  html() : HTMLLabelElement {
-    const label = document.createElement("label");
-    label.textContent = this.textContent;
-    label.htmlFor = this.forInput;
-    this.classes.forEach(element => label.classList.add(element));
-    return label;
-  }
-}
-
-export class LabelInputGroup {
-  id : string;
-  label : Label;
-  input: Input;
-
-  constructor(id: string, label:  Label, input: Input) { 
-    this.id = id;
-    this.label = label;
-    this.input = input;
-  }
-
-  html(){
-      const div = new Div(this.id,["form-group","p-3"]).html();
-      div.append(this.label.html(),this.input.html());
-      return div;
-    }
-
-  text(){
-    const text = this.label.textContent + ": " + this.input.value;
-    return text;
-  }
-  
-}
-
-export class Checkbox {
-  id : string;
-  textContent: string;
-  checked: boolean;
-
-  constructor(id: string, textContent : string) { 
-    this.id = id;
-    this.textContent = textContent;
-    this.checked = false;
-  }
-
-  html(){
-    
-    const div = new Div(this.id+"-checkbox",["form-check"]).html();
-
-    const input = new Input(this.id,"checkbox",["form-check-input"]);
-    div.addEventListener("change", () => this.checked = this.setChecked()); // altera valor quando o utilizador escreve no input
-
-    const label = new Label(this.textContent,this.id,["form-check-label"]);
-    div.append(input.html(),label.html());
-    return div;
-  }
-  setText(text:string){
-  console.log("TEXTONCENT");
-    this.textContent = text;
-  }
-
-  setChecked(){
-    if(this.checked){
-      return false;
-    }
-    else{
-      return true;
-    }
-  }
-}
-
 export class Button {
   textContent : string;
 
@@ -346,35 +328,6 @@ export class Button {
   }
 }
 
-export class Dropdown {
-  btnText : string;
-  options: string[];
-  //checkboxes: Checkbox[];
-
-  constructor(btnText: string, options : string[]) { 
-    this.btnText = btnText;
-    this.options = options;
-  }
-
-  html(){
-    const div = document.createElement("div");
-    div.innerHTML = '<a class="btn btn-primary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">'+this.btnText+'</a>'
-
-    const ul = document.createElement("ul");
-    ul.className = "dropdown-menu";
-
-    const li = document.createElement("li");
-    const aa = document.createElement("a");
-    aa.classList.add("dropdown-item");
-    aa.href="#"
-    this.options.forEach(element => {if(element != "")aa.append(new Checkbox("checkboxID",element).html())});
-    li.appendChild(aa)
-    ul.appendChild(li);
-    div.appendChild(ul);
-    return div;
-  }
-}
-
 export class List {
   id: string;
   title: string;
@@ -386,28 +339,46 @@ export class List {
     this.title = title;
     this.items = [];
     this.referenceList = referenceList;
-    this.addItem(this.items.length + 1,true,false,this.referenceList);
+    this.addItem(this.items.length + 1,true,false); // number, hasAddBtn, hasRmvBtn
   }
-  
+
+  addItem(number: number, hasAddBtn:boolean, hasRmvBtn:boolean){
+    const item = new Item(number,hasAddBtn,hasRmvBtn,this); // number, hasAddBtn, hasRmvBtn, list
+    this.items.push(item);
+  }
+
+  deleteItem(item: Item){
+    const index = item.number-1;
+    this.items.splice(index, 1);
+    for(let i = 0; i < this.items.length; i++){
+      this.items[i].updateNumber(i+1);
+    }
+  }
   html(): HTMLElement{
     var list = new Div(this.id,["list-group","m-3","p-3","border", "border-dark"]).html();
-    list.append(this.title);
-
+    list.append(new ListTitle(this.id+"Title",this.title).html());
     var itemsDiv = document.createElement("div");
 
     for(let i = 0; i < this.items.length; i++){
-      if(this.referenceList != undefined){
-        this.items[i].updateReferences(this.referenceList);
-      }
       var itemHTML = this.items[i].html();
       var buttons = Array.from(itemHTML.getElementsByTagName("button"));
       buttons.forEach(
         element =>  { 
           if(element.textContent == "+"){
-            element.addEventListener("click",() =>  this.addItem(this.items.length + 1,true,true,this.referenceList));
+            element.addEventListener("click",() =>  {
+            this.items[0].hasRmvBtn = true;
+            this.items[i].hasAddBtn = false;
+            this.addItem(this.items.length + 1,true,true);
+          })
           }
           else if(element.textContent == "-"){
-            element.addEventListener("click",() => this.deleteItem());
+            element.addEventListener("click",() => {
+              if(this.items.length == 2){
+                this.items[0].hasAddBtn = true;
+                this.items[0].hasRmvBtn = false;
+              }
+              this.deleteItem(this.items[i])});
+              this.items[this.items.length-1].hasAddBtn = true;
           }
       })
       itemsDiv.append(itemHTML);
@@ -415,24 +386,24 @@ export class List {
     list.append(itemsDiv);
     return list;
   }
-  
-  addItem(number: number, hasAddBtn:boolean,hasRmvBtn:boolean,referenceList? : List){
-    const item = new Item(number,this.id+'-item-'+number,hasAddBtn,hasRmvBtn,referenceList);
-    this.items.push(item);
-  }
 
-  deleteItem(){
-    this.items.pop();
-  }
+  
 
   text(){
-    var text = this.title + "\n";
-    this.items.forEach(element => text += element.label.textContent +":" +element.input.value + "\n");
+    var text = "--" + this.title + "--" + "\n";
+    for(let i = 0; i < 0; i++){
+      const item = this.items[i];
+      text += item.label.textContent +": " +item.input.value + "\n"
+      if(this.referenceList != undefined){
+        text += item.refDropdown?.referenceList.title + ": ";
+      }
+    }
     return text;
   }
 }
 
 export class Item {
+  number: number;
   id: string;
   label: Label;
   input: Input;
@@ -440,66 +411,149 @@ export class Item {
   hasRmvBtn: boolean;
   refDropdown: Dropdown | undefined;
 
-  constructor(number: number, id: string, hasAddBtn: boolean, hasRmvBtn: boolean, referenceList? : List ) {
-    this.id = id;
-    this.label = new Label(""+number,id,["form-control"]);
-    this.input = new Input(id,"text");
+  constructor(number: number, hasAddBtn: boolean, hasRmvBtn: boolean, list: List) {
+    this.number = number;
+    this.id = list.id+'Item'+number;
     this.hasAddBtn = hasAddBtn;
     this.hasRmvBtn = hasRmvBtn;
-    if(referenceList != undefined){
-      var options = [];
-      for(let i = 0; i < referenceList.items.length; ++i){
-        options.push(referenceList.items[i].input.value);
-      }
-      this.refDropdown = new Dropdown("Escolha as opções",options);
+    this.label = new Label(number+"",this.id+"Input",["form-control"]);
+    this.input = new Input(this.id+number+"Input","text");
+    if(list.referenceList != undefined){
+      this.refDropdown = new Dropdown(this.id + "refDropdown",list.referenceList);
     }
   }
 
-  updateReferences(referenceList: List){
-    if(this.refDropdown != undefined){
-    var options = [];
-      for(let i = 0; i < referenceList.items.length; ++i){
-        options.push(referenceList.items[i].input.value);
-      }
-      this.refDropdown.options = options;
-    }
+  updateNumber(number: number){
+    this.number = number;
+    //this.id = this.list.id+'Item'+number;
+    this.label.textContent = ""+number;
+    this.label.forInput = this.id;
+    this.input.id = this.id;
   }
   
   html(){
-    var item = document.createElement("div");
-    item.classList.add("list-group-item","m-2");
+    var itemDiv = document.createElement("div");
+    itemDiv.classList.add("list-group-item","m-2");
 
     var div = document.createElement("div");
     div.classList.add("d-flex", "flex-row");     
 
-    item.appendChild(div);
+    itemDiv.appendChild(div);
 
     var labelDiv = new Div(this.id+"-label",["p-2"]).html();
+    var inputDiv = new Div(this.id+"-input",["p-2","col-10"]).html();
     labelDiv.appendChild(this.label.html());
-
-    var inputDiv = new Div(this.id+"-input",["p-2"]).html();
     inputDiv.appendChild(this.input.html());
 
     div.append(labelDiv,inputDiv);
 
-    if(this.hasAddBtn){
-    var addBtnDiv = new Div(this.id+"-addBtn",["p-2"]).html();
-    addBtnDiv.appendChild(new Button("+").html());
-    div.append(addBtnDiv);
-    }
     if(this.hasRmvBtn){
-    var rmvBtnDiv = new Div(this.id+"-rmvBtn",["p-2"]).html();
-    rmvBtnDiv.appendChild(new Button("-").html());
-    div.append(rmvBtnDiv);
+      var rmvBtnDiv = new Div(this.id+"-rmvBtn",["p-2"]).html();
+      rmvBtnDiv.appendChild(new Button("-").html());
+      div.append(rmvBtnDiv);
+    }
+    
+    if(this.hasAddBtn){
+      var addBtnDiv = new Div(this.id+"-addBtn",["p-2"]).html();
+      addBtnDiv.appendChild(new Button("+").html());
+      div.append(addBtnDiv);
     }
 
     if(this.refDropdown != undefined){
-      var contentReferences = document.createElement("div");
-      var titleReferences = document.createElement("p");
-      titleReferences.textContent = "Conteúdos";
-      contentReferences.append(titleReferences);
-      item.append(contentReferences,this.refDropdown.html());
+      var contentReferences = new Div(this.id+"RefDropdownDiv",["m-2"]);
+      /*var titleReferences = document.createElement("p");
+      if(this.list.referenceList != undefined){
+        titleReferences.textContent = this.list.referenceList?.title.textContent;
+      }
+      contentReferences.append(titleReferences);*/
+      itemDiv.append(contentReferences.html(),this.refDropdown.html());
     }
-    return item;
+    return itemDiv;
+  }
+}
+
+export class Dropdown {
+  id: string;
+  referenceList : List;
+  checkboxes: Checkbox[];
+
+  constructor(id: string, referenceList : List) {
+    this.id = id;
+    this.referenceList = referenceList;
+    this.checkboxes = [];
+  }
+
+  updateCheckbox(){
+    const newCheckboxes = [];
+    for(let i= 0; i < this.referenceList.items.length ;i++){
+      const item = this.referenceList.items[i];
+      if(item.input.value != ""){
+        const checkbox = new Checkbox(this.id+"Option"+item.id,item.input.value);
+        this.checkboxes.forEach(element => {
+          if(checkbox.text == element.text){
+            checkbox.checked = element.checked;
+          }
+        })
+        newCheckboxes.push(checkbox);
+      }
+    }
+    this.checkboxes = newCheckboxes;
+  }
+
+  html(){
+    const div = document.createElement("div");
+
+    const a = document.createElement("a");
+    a.classList.add("btn", "btn-primary" ,"dropdown-toggle");
+    a.setAttribute("data-bs-toggle","dropdown");
+    a.textContent = this.referenceList.title;
+    div.append(a);
+
+    const ul = document.createElement("ul");
+    ul.className = "dropdown-menu";
+
+    const li = document.createElement("li");
+    const aa = document.createElement("a");
+    aa.classList.add("dropdown-item");
+
+    this.updateCheckbox();
+    this.checkboxes.forEach(element => {aa.append(element.html()); console.log("aaaa"+element.checked)});
+    //this.referenceList.items.forEach(element => {if(element.input.value != "") aa.append(new Checkbox("checkboxID",element).html())});
+
+    li.appendChild(aa)
+    ul.appendChild(li);
+    div.appendChild(ul);
+    return div;
+  }
+}
+
+export class Checkbox {
+  id : string;
+  checked: boolean;
+  text: string;
+
+  constructor(id: string, text : string, checked: boolean = false ) { 
+    this.id = id;
+    this.text= text;
+    this.checked = checked;
+  }
+
+  html(){
+    const div = new Div(this.id+"Checkbox",["form-check"]).html();
+    const input = new Input(this.id,"checkbox",["form-check-input"]);
+    const label = new Label(this.text,this.id,["form-check-label"]);
+    div.addEventListener("change", () => {this.checked = this.updateChecked(); input.setChecked(this.checked);
+    });
+    div.append(input.html(),label.html());
+    return div;
+  }
+
+  updateChecked(){
+    if(this.checked){
+      return false;
+    }
+    else{
+      return true;
+    }
   }
 }
