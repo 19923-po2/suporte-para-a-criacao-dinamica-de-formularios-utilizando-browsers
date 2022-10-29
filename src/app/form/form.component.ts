@@ -1,6 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { CheckboxControlValueAccessor } from '@angular/forms';
-import { elementAt } from 'rxjs-compat/operator/elementAt';
 
 @Component({
   selector: 'app-form',
@@ -11,14 +9,14 @@ import { elementAt } from 'rxjs-compat/operator/elementAt';
 export class FormComponent implements OnInit {
   
   constructor() {
+
   }
 
-  // id automatico
   ngOnInit(): void {
-    const ucForm = new Form("Planeamento da Unidades Curricular"); // ID e Title
-    ucForm.addLabelInputGroup("Nome da UC"); // ID e Title
-    const list = ucForm.addList("Conteúdos"); // ID e Title
-    ucForm.addList("Objetivos","Os conteúdos importantes são: ",list); // 2 prefixos singular e plural
+    const ucForm = new Form("Planeamento da Unidades Curricular"); // Title
+    ucForm.addLabelInputGroup("Nome da UC"); // Title
+    const list = ucForm.addList("Conteúdos"); // Title
+    ucForm.addList("Objetivos","Os conteúdos importantes são: ", list); // Title, Prefixo
     ucForm.show(); // Show
   }  
 }
@@ -26,7 +24,7 @@ export class FormComponent implements OnInit {
 /**************************************************************/ 
 
 export class Form {
-  id: string;
+  id : string;
   title: string;
   contents: (List | LabelInputGroup)[];
 
@@ -37,49 +35,46 @@ export class Form {
   }
   
   addLabelInputGroup(title: string): LabelInputGroup{
-    const id = "content" + this.contents.length+1;
-    const inputId = id+"Input";
-    const labelInputGroup = new LabelInputGroup(id, new Label(title, inputId), new Input(inputId,"text"));
+    const id = "content" + (this.contents.length + 1);
+    const inputId = id + "Input";
+    const labelInputGroup = new LabelInputGroup(id, new Label(title, inputId), new Input(inputId, "text"));
     this.contents.push(labelInputGroup);
     return labelInputGroup;
   }
 
   addList(title: string, prefix?: string, referenceList? : List): List{
-    const id = "content" + this.contents.length+1;
+    const id = "content" + (this.contents.length + 1);
     const list = new List(id, title , prefix, referenceList);
     this.contents.push(list);
     return list;
   }
   
   show(){
-    const formElement = this.html(); 
-    document.getElementById("main")?.appendChild(formElement);
+    const formHtml = this.html(); 
+    document.getElementById("main")!.appendChild(this.html());
   }
 
-  update(){
-    console.log("form update");
-    document.getElementById("main")!!.innerHTML = "";
+  update(){ 
+    document.getElementById("main")!.innerHTML = "";
     this.show();
   }
 
   // https://stackoverflow.com/questions/34504050/how-to-convert-selected-html-to-json
-  downloadJsonFile(arg: { fileName: string, text: string; }) {
-    var dynamicDownload = document.createElement('a');
-    const element = dynamicDownload;
-    const fileType = arg.fileName.indexOf('.json') > -1 ? 'text/json' : 'text/plain';
-    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(arg.text)}`);
-    element.setAttribute('download', arg.fileName);
+  downloadJsonFile(fileName: string, text: string) {
+    var element = document.createElement('a');
+    const fileType = fileName.indexOf('.json') > -1 ? 'text/json' : 'text/plain';
+    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(text)}`);
+    element.setAttribute('download', fileName);
 
     var event = new MouseEvent("click");
     element.dispatchEvent(event);
   }
 
-  downloadTxtFile(arg: { fileName: string, text: string; }){
-    var dynamicDownload = document.createElement('a');
-    const element = dynamicDownload;
-    const fileType = arg.fileName.indexOf('.txt') > -1 ? 'text/txt' : 'text/plain';
-    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(arg.text)}`);
-    element.setAttribute('download', arg.fileName);
+  downloadTxtFile(fileName: string, text: string){
+    var element = document.createElement('a');
+    const fileType = fileName.indexOf('.txt') > -1 ? 'text/txt' : 'text/plain';
+    element.setAttribute('href', `data:${fileType};charset=utf-8,${encodeURIComponent(text)}`);
+    element.setAttribute('download', fileName);
     var event = new MouseEvent("click");
     element.dispatchEvent(event);
     
@@ -93,63 +88,48 @@ export class Form {
     reader.onload = function() {
       const fileContent = JSON.parse(reader.result as string);
       form = new Form(fileContent.title);
-      form.contents = [];
       if(fileContent.contents.length > 0){
         for(let i = 0; i< fileContent.contents.length; i++){
-          const content = fileContent.contents[i];
-          if(content.hasOwnProperty('label')){
-          //ucForm.addLabelInputGroup("ucNameFormGroup",new Label("Nome da UC","ucName"),new Input("ucName","text")); // FormGroup Nome UC
-            var labelInput = form.addLabelInputGroup(content.label.textContent);
-            labelInput.input.value = content.input.value;
+          const contentJson = fileContent.contents[i];
+          if(contentJson.hasOwnProperty('label')){
+            var labelInput = form.addLabelInputGroup(contentJson.label.textContent);
+            labelInput.input.value = contentJson.input.value;
           }
-          else if(content.hasOwnProperty('title')){
+          else if(contentJson.hasOwnProperty('items')){
             var list;
             var referenceList;
-            if(content.hasOwnProperty('referenceList')){
-              form.contents.forEach(element => {
-                if(element.id == content.id && element.constructor.name == "List"){
-                  referenceList = element;
-              }});
-                    form.contents.forEach(element => {if(element.id = content.referenceList.id && element instanceof List){referenceList = element;}})
-                    list = form.addList(content.title,content.prefix,referenceList);  
+            if(contentJson.hasOwnProperty('referenceList')){
+              form.contents.forEach(element => {if(element.id = contentJson.referenceList.id && element instanceof List){referenceList = element;}})
             }
-            else {
-              list = form.addList(content.title,content.prefix,referenceList);
-            }
-            if(content.items.length > 0){
-                var items = [];
-              for(let i = 0; i< content.items.length; i++){
-                const itemJson = content.items[i];
+            list = form.addList(contentJson.title,contentJson.prefix,referenceList);
+            var items = [];
+              for(let i = 0; i< contentJson.items.length; i++){
+                const itemJson = contentJson.items[i];
                 const item = new Item(itemJson.label.textContent as number,itemJson.hasAddBtn,itemJson.hasRmvBtn,list);
                 item.input.value = itemJson.input.value;
                   if(item.refDropdown != undefined){
                       for(let x = 0; x < itemJson.refDropdown.checkboxes.length; x++){
-                        const checkboxJson = itemJson.refDropdown.checkboxes[x];
-                        const checkbox = new Checkbox(checkboxJson.id,checkboxJson.label.textContent,checkboxJson.input.checked);
-                        item.refDropdown.checkboxes[x] = checkbox;
-                        console.log(checkboxJson.text)
+                        const checkboxesJson = itemJson.refDropdown.checkboxes[x];
+                        item.refDropdown.checkboxes[x] = new Checkbox(checkboxesJson.id,checkboxesJson.label.textContent,checkboxesJson.input.checked);
                       }
                   }
                 items.push(item);
               }
               list.items = items;
             }
-            
           }
         }
+        form.update();
       }
-      form.update();
-  }
   }
 
   //
   createButtonsHtml(): HTMLDivElement{
     const buttonsDiv = new Div("buttonsDiv",["container"]).html();
 
-
     const saveJsonDiv = new Div("saveJsonDiv",["d-inline","p-2"]).html();
     const saveJsonBtn = new Button("Guardar Formulário").html();
-    saveJsonBtn.addEventListener("click",()=>this.downloadJsonFile({ fileName: 'Formulario.json', text: JSON.stringify(this)}));
+    saveJsonBtn.addEventListener("click",()=>this.downloadJsonFile('Formulario.json', JSON.stringify(this)));
     saveJsonDiv.appendChild(saveJsonBtn);
 
     const uploadJsonDiv = new Div("uploadJsonDiv",["d-inline","p-2"]).html();
@@ -158,48 +138,39 @@ export class Form {
     uploadJsonBtn.accept = ".json";
     uploadJsonBtn.addEventListener("change",()=>this.uploadFile(this));
     uploadJsonDiv.append(uploadJsonBtn);
-    //const uploadDiv = new Div("uploadDiv",["custom-file"]).html();
-    //<input class="btn btn-primary" type="file" id="jsonfile" name="file" (change)="uploadFile()" accept=".json"/>
-    //const labelJsonBtnHtml = new Label("Ler formulário","jsonfile",["custom-file-label"]).html();
-    // <label class="custom-file-label" for="customFile">Choose file</label>
     
     const txtDiv = new Div("txtDiv",["d-inline","p-2"]).html();
     const txtBtn = new Button("Gerar ficheiro de Texto").html();
-    txtBtn.addEventListener("click",()=>this.downloadTxtFile({fileName: 'Texto.txt', text: this.text()}));
+    txtBtn.addEventListener("click",()=>this.downloadTxtFile('Texto.txt', this.text()));
     txtDiv.append(txtBtn);
     buttonsDiv.append(saveJsonDiv,uploadJsonDiv, txtDiv);
 
     return buttonsDiv;
   }
-  
-  text(){
-    var string = "---- "+ this.title + " ----" + "\n";
-    this.contents.forEach(element => string += element.text() + "\n");
-    return string;
-  }
 
   html(): HTMLElement{
     const form = document.createElement("form");
     form.id = this.id;
-    form.classList.add("m-3","border", "border-dark");
-    form.append(new Title(this.id+"Title",this.title).html());
+    form.classList.add("m-3","border","border-dark");
+    form.append(new Title(this.id+"Title", this.title).html());
     form.append(this.createButtonsHtml());
 
     for(let i = 0; i < this.contents.length; i++){
       const html = this.contents[i].html();
       var buttons = Array.from(html.getElementsByTagName("button"));
       var inputs = Array.from(html.getElementsByTagName("input"));
-      /*inputs.forEach(element => {
-        if(element.classList.contains("form-check-input")){
-          inputs = inputs.splice(inputs.indexOf(element)-1, 1);
-        }
-      });*/
       buttons.forEach(element => element.addEventListener("click",() =>  this.update()));
       inputs.forEach(element => element.addEventListener("change",() =>  this.update()));
       form.appendChild(html);
     }
 
     return form;
+  }
+
+  text(){
+    var string = "---- "+ this.title + " ----" + "\n";
+    this.contents.forEach(element => string += element.text() + "\n");
+    return string;
   }
 }
 
