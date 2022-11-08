@@ -21,8 +21,6 @@ export class FormComponent implements OnInit {
   }
 }
 
-/**************************************************************/
-
 /**
  * Represents a form.
  */
@@ -36,35 +34,35 @@ export class Form {
    * @param title is the title of form.
    */
   public constructor(title: string) {
-    this.id = "form";
+    this.id = "form"; // id is always "form"
     this.title = title;
     this.contents = [];
   }
 
   /**
    * Add a LabelInputGroup to this form.
-   * @param title - textContext of the label.
-   * @returns labelInputGroup
+   * @param title is the text content of the label.
+   * @returns LabelInputGroup
    */
   public addLabelInputGroup(title: string): LabelInputGroup {
-    const id = "content" + (this.contents.length + 1);
-    const inputId = id + "Input";
+    const id = "content" + (this.contents.length + 1); // this id prefix is always "content"
+    const inputId = id + "Input"; // inputId suffix is always "Input"
     const labelInputGroup = new LabelInputGroup(id, new Label(title, inputId), new Input(inputId, "text"));
-    this.contents.push(labelInputGroup);
+    this.contents.push(labelInputGroup); // push to array of contents
     return labelInputGroup;
   }
 
   /**
    * Add a List to this form.
-   * @param title - title of List.
-   * @param prefix - optional prefix used to enumerate references.
-   * @param referenceList - optional list that represents the list that is used for references.
-   * @returns list
+   * @param title is the title of List.
+   * @param prefix is an optional prefix used to enumerate references.
+   * @param referenceList is an optional list that represents the list that is used for references.
+   * @returns List
    */
   public addList(title: string, prefix?: string, referenceList?: List): List {
-    const id = "content" + (this.contents.length + 1);
+    const id = "content" + (this.contents.length + 1);  // this id prefix is always "content"
     const list = new List(id, title, prefix, referenceList);
-    this.contents.push(list);
+    this.contents.push(list); // push to contents array
     return list;
   }
 
@@ -72,14 +70,14 @@ export class Form {
    * Shows the form in the web interface.
    */
   public show(): void {
-    document.getElementById("main")!.appendChild(this.html());
+    document.getElementById("main")!.appendChild(this.html()); // appends the form html to an pre-existing html element with id = "main"
   }
 
   /**
    * Updates the form in the web interface.
    */
   private update(): void {
-    document.getElementById("main")!.innerHTML = "";
+    document.getElementById("main")!.innerHTML = ""; // removes the previous form html code
     this.show();
   }
 
@@ -97,6 +95,7 @@ export class Form {
 
     const event = new MouseEvent("click");
     element.dispatchEvent(event);
+    this.update();
   }
 
   /**
@@ -112,55 +111,55 @@ export class Form {
     element.setAttribute('download', fileName);
     const event = new MouseEvent("click");
     element.dispatchEvent(event);
-
+    this.update();
   }
 
   /**
-   * Upload a form
+   * Upload a form using a JSON File.
    * @param form is a Form object that will have the proprieties of the uploaded form.
    */
   private uploadFile(form: Form): void {
-    const importedFile = (document.getElementById('jsonfile') as HTMLInputElement)?.files?.item(0);
+    const importedFile = (document.getElementById('jsonfile') as HTMLInputElement)?.files?.item(0); // get the file.
     const reader = new FileReader();
-    reader.readAsText(importedFile as Blob);
+    reader.readAsText(importedFile as Blob); // read the file.
     reader.onload = function () {
       const fileContent = JSON.parse(reader.result as string);
-      form = new Form(fileContent.title);
-      if (fileContent.contents.length > 0) {
+      form = new Form(fileContent.title); // create a new form using the title from the Json file.
+      if (fileContent.contents.length > 0) { // creates all the contents.
         for (let i = 0; i < fileContent.contents.length; i++) {
-          const contentJson = fileContent.contents[i];
-          if (contentJson.hasOwnProperty('label')) { // LabelInputGroup
-            const labelInput = form.addLabelInputGroup(contentJson.label.textContent);
-            labelInput.getInput().setValue(contentJson.input.value);
-          } else if (contentJson.hasOwnProperty('items')) { //Lists
+          const contentJson = fileContent.contents[i]; // this content.
+          if (contentJson.hasOwnProperty('label')) { //  if this content is a LabelInputGroup (only this object has the property 'label').
+            const labelInputGroup = form.addLabelInputGroup(contentJson.label.textContent);  // creates a LabelInputGroup object.
+            labelInputGroup.getInput().setValue(contentJson.input.value); // insert the input value in the LabelInputGroup object.
+          } else if (contentJson.hasOwnProperty('items')) { //  if this content is a List (only this object has the property 'items').
             let list;
             let referenceList;
-            if (contentJson.hasOwnProperty('referenceList')) {
+            if (contentJson.hasOwnProperty('referenceList')) { // if it's a List with references.
               form.contents.forEach(element => {
-                if (element.getId() == contentJson.referenceList.id && element instanceof List) {
+                if (element.getId() == contentJson.referenceList.id && element instanceof List) {  // finds the referenceList of this List in the array of contents
                   referenceList = element;
                 }
               })
             }
-            list = form.addList(contentJson.title, contentJson.prefix, referenceList);
+            list = form.addList(contentJson.title, contentJson.prefix, referenceList); // creates List
             const items = [];
-            for (let i = 0; i < contentJson.items.length; i++) {
+            for (let i = 0; i < contentJson.items.length; i++) { // for each item of list
               const itemJson = contentJson.items[i];
-              const item = new Item(itemJson.label.textContent as number, itemJson.hasAddBtn, itemJson.hasRmvBtn, list);
-              item.getInput().setValue(itemJson.input.value);
+              const item = new Item(itemJson.label.textContent as number, itemJson.hasAddBtn, itemJson.hasRmvBtn, list);  // create item from List
+              item.getInput().setValue(itemJson.input.value); // sets value of input in item
               if (item.getRefDropdown() != undefined) {
-                for (let x = 0; x < itemJson.refDropdown.options.length; x++) {
+                for (let x = 0; x < itemJson.refDropdown.options.length; x++) { // creates references dropdown of item
                   const optionsJson = itemJson.refDropdown.options[x];
-                  item.getRefDropdown()!.getOptions()[x] = new Option(optionsJson.id, optionsJson.label.textContent, optionsJson.input.checked);
+                  item.getRefDropdown()!.getOptions()[x] = new Option(optionsJson.id, optionsJson.label.textContent, optionsJson.input.checked); // create option of dropdown
                 }
               }
               items.push(item);
             }
-            list.setItems(items);
+            list.setItems(items); // sets all list items
           }
         }
       }
-      form.update();
+      form.update(); // updates interface
     }
   }
 
@@ -173,19 +172,19 @@ export class Form {
 
     const saveJsonDiv = new Div("saveJsonDiv", ["d-inline", "p-2"]).html();
     const saveJsonBtn = new Button("saveJsonBtn", "Guardar Formulário").html();
-    saveJsonBtn.addEventListener("click", () => this.downloadJsonFile('Formulario.json', JSON.stringify(this)));
+    saveJsonBtn.addEventListener("click", () => this.downloadJsonFile('Formulario.json', JSON.stringify(this))); // download json file when clicked
     saveJsonDiv.appendChild(saveJsonBtn);
 
     const uploadJsonDiv = new Div("uploadJsonDiv", ["d-inline", "p-2"]).html();
     const uploadJsonBtn = new Input("jsonfile", "file", ["btn", "btn-primary", "custom-file-input"]).html();
     uploadJsonBtn.name = "file";
     uploadJsonBtn.accept = ".json";
-    uploadJsonBtn.addEventListener("change", () => this.uploadFile(this));
+    uploadJsonBtn.addEventListener("change", () => this.uploadFile(this)); // call uploadfile() when file is uploaded
     uploadJsonDiv.append(uploadJsonBtn);
 
     const txtDiv = new Div("txtDiv", ["d-inline", "p-2"]).html();
     const txtBtn = new Button("saveTxtBtn", "Gerar ficheiro de Texto").html();
-    txtBtn.addEventListener("click", () => this.downloadTxtFile('Texto.txt', this.text()));
+    txtBtn.addEventListener("click", () => this.downloadTxtFile('Texto.txt', this.text())); // download txt file when button is clicked
     txtDiv.append(txtBtn);
     buttonsDiv.append(saveJsonDiv, uploadJsonDiv, txtDiv);
 
@@ -201,19 +200,18 @@ export class Form {
   public html(): HTMLElement {
     const form = document.createElement("form");
     form.id = this.id;
-    form.classList.add("m-3", "border", "border-dark");
-    form.append(new Title(this.id + "Title", this.title).html());
+    form.classList.add("m-3", "border", "border-dark"); // classes
+    form.append(new Title(this.id + "Title", this.title).html()); // title of form
     form.append(this.createButtonsHtml());
 
     for (let i = 0; i < this.contents.length; i++) {
-      const html = this.contents[i].html();
-      const buttons = Array.from(html.getElementsByTagName("button"));
-      const inputs = Array.from(html.getElementsByTagName("input"));
-      buttons.forEach(element => element.addEventListener("click", () => this.update()));
-      inputs.forEach(element => element.addEventListener("change", () => this.update()));
+      const html = this.contents[i].html(); // this content html code
+      const buttons = Array.from(html.getElementsByTagName("button")); // this content buttons
+      const inputs = Array.from(html.getElementsByTagName("input")); // this content inputs
+      buttons.forEach(element => element.addEventListener("click", () => this.update())); // update when a button is clicked
+      inputs.forEach(element => element.addEventListener("change", () => this.update())); // update when a input is changed
       form.appendChild(html);
     }
-
     return form;
   }
 
@@ -222,14 +220,14 @@ export class Form {
    * @returns string
    */
   text(): string {
-    let string = "---- " + this.title + " ----" + "\n";
-    this.contents.forEach(element => string += element.text() + "\n");
+    let string = "---- " + this.title + " ----" + "\n" +"\n"; // title text
+    this.contents.forEach(element => string += element.text() + "\n"); // contents text
     return string;
   }
 }
 
 /**
- * Represents a group of label and input.
+ * Represents a group of a label and an input.
  */
 export class LabelInputGroup {
   private readonly id: string;
@@ -238,9 +236,9 @@ export class LabelInputGroup {
 
   /**
    * Constructor of LabelInputGroup.
-   * @param id - id of LabelInputGroup.
-   * @param label - label of LabelInputGroup.
-   * @param input - input of LabelInputGroup.
+   * @param id is the id of LabelInputGroup.
+   * @param label is the label of LabelInputGroup.
+   * @param input is the input of LabelInputGroup.
    */
   public constructor(id: string, label: Label, input: Input) {
     this.id = id;
@@ -255,17 +253,17 @@ export class LabelInputGroup {
    * @returns HTMLDivElement using the html() method from a Div object.
    */
   public html(): HTMLDivElement {
-    const div = new Div(this.id, ["m-3", "p-3", "border", "border-dark"]).html();
-    div.append(this.label.html(), this.input.html());
+    const div = new Div(this.id, ["m-3", "p-3", "border", "border-dark"]).html(); // Div object
+    div.append(this.label.html(), this.input.html()); // append each label and input html to div
     return div;
   }
 
-   /**
+  /**
    * Creates a text that shows the label text and input value.
    * @returns string
    */
-  public text() : string {
-    const text = this.label.getTextContent() + ": " + this.input.getValue();
+  public text(): string {
+    const text = this.label.getTextContent() + ": " + this.input.getValue(); // label text and input value
     return text;
   }
 
@@ -318,7 +316,7 @@ export class Title {
 
   /**
    * Returns the id of the title.
-   * @returns this.id
+   * @returns string
    */
   public getId(): string {
     return this.id;
@@ -343,7 +341,6 @@ export class ListTitle extends Title {
    * @param id - id of title.
    * @param textContent - text of the title.
    * @remarks Super is used to access the superclass constructor.
-   *
    */
   public constructor(id: string, textContent: string) {
     super(id, textContent);
@@ -355,7 +352,7 @@ export class ListTitle extends Title {
    * @returns HTMLHeadingElement with id textContent according to this object attributes.
    * @override
    */
-  public override html() : HTMLHeadingElement {
+  public override html(): HTMLHeadingElement {
     const title = document.createElement("h5");
     title.id = this.getId();
     title.textContent = this.getTextContent();
@@ -368,11 +365,11 @@ export class ListTitle extends Title {
  * Represents an input.
  */
 export class Input {
-  private id: string;
-  private readonly type: string;
-  private readonly classes: string[] | undefined;
-  private value: string;
-  private checked: boolean;
+  private id: string; // id of input
+  private readonly type: string; // type of input (example: "text" or "checkbox")
+  private readonly classes: string[] | undefined; // classes
+  private value: string; // value of input
+  private checked: boolean; // used for inputs of type checkbox
 
   /**
    * Constructor of Input.
@@ -413,7 +410,7 @@ export class Input {
 
   /**
    * Updates the value of the input.
-   * @param value - new value of input.
+   * @param value is the new value of input.
    */
   public setValue(value: string): void {
     this.value = value;
@@ -421,7 +418,7 @@ export class Input {
 
   /**
    * Updates the checked of the input.
-   * @param checked - new checked of input.
+   * @param checked is true or false.
    */
   public setChecked(checked: boolean): void {
     this.checked = checked;
@@ -429,7 +426,7 @@ export class Input {
 
   /**
    * Updates the id of the input.
-   * @param id - new id of input.
+   * @param id is the new id of input.
    */
   public setId(id: string): void {
     this.id = id;
@@ -437,7 +434,7 @@ export class Input {
 
   /**
    * Returns the value of the input.
-   * @returns this.value
+   * @returns string
    */
   public getValue(): string {
     return this.value;
@@ -445,7 +442,7 @@ export class Input {
 
   /**
    * Returns the checked of the input.
-   * @returns this.checked
+   * @returns string
    */
   public getChecked(): boolean {
     return this.checked;
@@ -462,9 +459,9 @@ export class Label {
 
   /**
    * Constructor of Label.
-   * @param textContent - text of the Label.
-   * @param forInput - value of htmlFor attribute of HTMLLabelElement.
-   * @param classes - Optional array of strings that will represent the classList of the HTMLLabelElement.
+   * @param textContent is the text content of the Label.
+   * @param forInput is the value of htmlFor attribute of HTMLLabelElement.
+   * @param classes is an optional array of strings that will represent the classList of the HTMLLabelElement.
    */
   public constructor(textContent: string, forInput: string, classes?: string[]) {
     this.textContent = textContent;
@@ -474,7 +471,7 @@ export class Label {
 
   /**
    * Creates a HTMLLabelElement.
-   * @returns HTMLDivElement with textContent,htmlFor and classList proprieties according to this object attributes.
+   * @returns HTMLLabelElement with textContent,htmlFor and classList proprieties according to this object attributes.
    */
   public html(): HTMLLabelElement {
     const label = document.createElement("label");
@@ -486,7 +483,7 @@ export class Label {
 
   /**
    * Returns the text content of this label.
-   * @returns this.textContent
+   * @returns string
    */
   public getTextContent(): string {
     return this.textContent;
@@ -502,8 +499,8 @@ export class Div {
 
   /**
    * Constructor of Div.
-   * @param id - Id of the Div.
-   * @param classes - Array of strings that will represent the classList of the HTMLDivElement.
+   * @param id is the id of the Div.
+   * @param classes is an array of strings that will represent the classList of the HTMLDivElement.
    */
   public constructor(id: string, classes: string[]) {
     this.id = id;
@@ -531,8 +528,8 @@ export class Button {
 
   /**
    * Constructor of Button.
-   * @param id - Id of the Button.
-   * @param textContent - The textContent of the button.
+   * @param id is the id of the Button.
+   * @param textContent is he text content of the button.
    */
   public constructor(id: string, textContent: string) {
     this.id = id;
@@ -566,10 +563,10 @@ export class List {
 
   /**
    * Constructor of List.
-   * @param id - id of List.
-   * @param title - title of List.
-   * @param prefix - optional prefix used to enumerate references.
-   * @param referenceList - optional list that represents the list that is used for references.
+   * @param id is the id of List.
+   * @param title is the title of List.
+   * @param prefix is an optional prefix used to enumerate references.
+   * @param referenceList is an optional list that represents the list that is used for references.
    */
   public constructor(id: string, title: string, prefix?: string, referenceList?: List) {
     this.id = id;
@@ -577,29 +574,29 @@ export class List {
     this.items = [];
     this.referenceList = referenceList;
     this.prefix = prefix;
-    this.addItem(this.items.length + 1, true, false); // number, hasAddBtn, hasRmvBtn
+    this.addItem(this.items.length + 1, true, false); // add the first item this list
   }
 
   /**
    * Add item to List.
-   * @param number - number of item.
-   * @param hasAddBtn - boolean if item has add button or not .
-   * @param hasRmvBtn - boolean if item has remove button or not .
+   * @param number is the number of item.
+   * @param hasAddBtn is a boolean if item has add button or not.
+   * @param hasRmvBtn is a boolean if item has remove button or not.
    */
   private addItem(number: number, hasAddBtn: boolean, hasRmvBtn: boolean): void {
-    const item = new Item(number, hasAddBtn, hasRmvBtn, this); // number, hasAddBtn, hasRmvBtn, list
-    this.items.push(item);
+    const item = new Item(number, hasAddBtn, hasRmvBtn, this);
+    this.items.push(item); // push item to array.
   }
 
   /**
-   * Remove item from List.
-   * @param item - item that is going to be removed.
+   * Remove item from array.
+   * @param item is the item that is going to be removed.
    */
   private deleteItem(item: Item): void {
-    const index = item.getNumber() - 1;
+    const index = item.getNumber() - 1; // an item index in array is always number - 1
     this.items.splice(index, 1);
     for (let i = 0; i < this.items.length; i++) {
-      this.items[i].updateNumber(i + 1);
+      this.items[i].updateNumber(i + 1); // update the number of all the items, after removal
     }
   }
 
@@ -607,38 +604,39 @@ export class List {
    * Creates the list as a HTMLElement.
    * @returns HTMLElement that represents the list.
    */
-  html(): HTMLElement {
+  public html(): HTMLElement {
     const list = new Div(this.id, ["list-group", "m-3", "p-3", "border", "border-dark"]).html();
-    list.append(new ListTitle(this.id + "Title", this.title).html());
+    list.append(new ListTitle(this.id + "Title", this.title).html()); // list title
     const itemsDiv = document.createElement("div");
 
     for (let i = 0; i < this.items.length; i++) {
-      const itemHTML = this.items[i].html();
+      const itemHTML = this.items[i].html(); // item html
       const buttons = Array.from(itemHTML.getElementsByTagName("button"));
+      /* add event listeners for each button */
       buttons.forEach(
         element => {
-          if (element.textContent == "+") {
+          if (element.textContent == "+") { // add button
             element.addEventListener("click", () => {
               this.items[i].setHasRmvBtn(true);
               this.items[i].setHasAddBtn(false);
-              this.addItem(this.items.length + 1, true, true);
+              this.addItem(this.items.length + 1, true, true); // add item (last item has addBtn and rmvBtn)
             })
-          } else if (element.textContent == "-") {
+          } else if (element.textContent == "-") { // remove button
             element.addEventListener("click", () => {
-              if (i - 1 >= 0 && this.items.length == 2) {
-                console.log("(i-1 >= 0 && this.items.length == 2 )");
-                this.items[i - 1].setHasAddBtn(true);
-                this.items[i - 1].setHasRmvBtn(false);
-              } else if (this.items.length == 2) {
-                console.log("(this.items.length == 2)");
-                this.items[i + 1].setHasAddBtn(true);
-                this.items[i + 1].setHasRmvBtn(false);
-              } else if (i - 1 > 0) {
-                console.log("else");
-                this.items[i - 1].setHasAddBtn(true);
-                this.items[i - 1].setHasRmvBtn(true);
+              console.log(i);
+              if(i == 0  && this.items.length == 2){ // if theres 2 items left, and first is removed
+                this.items[i+1].setHasAddBtn(true);
+                this.items[i+1].setHasRmvBtn(false);
               }
-              this.deleteItem(this.items[i])
+              else if(i == 1  && this.items.length == 2){ // if theres 2 items left, and second is removed
+                this.items[i-1].setHasAddBtn(true);
+                this.items[i-1].setHasRmvBtn(false);
+              }
+              else if(i == this.items.length -1){ // if last item is removed
+                this.items[i-1].setHasAddBtn(true);
+                this.items[i-1].setHasRmvBtn(true);
+              }
+              this.deleteItem(this.items[i]) // delete this item
             });
           }
         })
@@ -652,16 +650,16 @@ export class List {
    * Creates a text that shows all the contents of the list.
    * @returns string
    */
-  text() : string{
-    let text = "\n" + "--" + this.title + "--";
+  public text(): string {
+    let text = "\n" + "--" + this.title + "--"; // title
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
-      text += "\n" + "\n" + item.getLabel().getTextContent() + ": " + item.getInput().getValue();
-      if (this.referenceList != undefined) {
-        text += "\n" + item.getPrefix();
+      text += "\n" + "\n" + item.getLabel().getTextContent() + ": " + item.getInput().getValue(); // label and input of item
+      if (this.referenceList != undefined) { // references
+        text +=  "\n" + item.getPrefix(); // prefix
         for (let i = 0; i < item.getRefDropdown()!.getOptions().length; i++) {
           if (item.getRefDropdown()!.getOptions()[i].getInput().getChecked()) {
-            text += "\n" + item.getRefDropdown()!.getOptions()[i].getLabel().getTextContent();
+            text += "\n"+"-> " + item.getRefDropdown()!.getOptions()[i].getLabel().getTextContent(); // reference text
           }
         }
       }
@@ -673,7 +671,7 @@ export class List {
    * Returns the id of list.
    * @returns string
    */
-  getId(): string {
+  public getId(): string {
     return this.id;
   }
 
@@ -681,7 +679,7 @@ export class List {
    * Returns the title of list.
    * @returns string
    */
-  getTitle(): string {
+  public getTitle(): string {
     return this.title;
   }
 
@@ -689,7 +687,7 @@ export class List {
    * Returns the prefix of list.
    * @returns string | undefined
    */
-  getPrefix() {
+  public getPrefix() : string | undefined {
     return this.prefix;
   }
 
@@ -697,7 +695,7 @@ export class List {
    * Returns the reference list.
    * @returns List | undefined
    */
-  getReferenceList() {
+  public getReferenceList() : List | undefined{
     return this.referenceList;
   }
 
@@ -705,7 +703,7 @@ export class List {
    * Returns the items of this list.
    * @returns Item[]
    */
-  getItems(): Item[] {
+  public getItems(): Item[] {
     return this.items;
   }
 
@@ -713,13 +711,16 @@ export class List {
    * Sets the items of this list.
    * @param items
    */
-  setItems(items: Item[]) {
+  public setItems(items: Item[]) {
     return this.items = items;
   }
 }
 
+/**
+ * Represents an item.
+ */
 export class Item {
-  private number: number;
+  private number: number; 
   private readonly id: string;
   private label: Label;
   private readonly input: Input;
@@ -728,7 +729,13 @@ export class Item {
   private readonly refDropdown: Dropdown | undefined;
   private readonly prefix: string | undefined;
 
-
+  /**
+   * Constructor of Item.
+   * @param number is the number of item.
+   * @param hasAddBtn is a boolean if item has add button or not.
+   * @param hasRmvBtn is a boolean if item has remove button or not.
+   * @param list is the list this item gonna be added.
+   */
   public constructor(number: number, hasAddBtn: boolean, hasRmvBtn: boolean, list: List) {
     this.number = number;
     this.id = list.getId() + 'Item' + number;
@@ -743,12 +750,20 @@ export class Item {
     }
   }
 
+  /**
+   * Updates the number of the item.
+   * @param number is the new number of item.
+   */
   public updateNumber(number: number) {
     this.number = number;
     this.label = new Label("" + number, this.id + "Input", ["form-control"]);
     this.input.setId(this.id);
   }
 
+  /**
+   * Creates a HTMLDivElement using a Div object.
+   * @returns HTMLDivElement using the html() method from a Div object.
+   */
   public html(): HTMLDivElement {
     const itemDiv = document.createElement("div");
     itemDiv.classList.add("list-group-item", "m-2");
@@ -765,19 +780,19 @@ export class Item {
 
     div.append(labelDiv, inputDiv);
 
-    if (this.hasRmvBtn) {
+    if (this.hasRmvBtn) { // add rmvBtn
       const rmvBtnDiv = new Div(this.id + "-rmvBtn", ["p-2"]).html();
       rmvBtnDiv.appendChild(new Button(this.id + "RmvBtn", "-").html());
       div.append(rmvBtnDiv);
     }
 
-    if (this.hasAddBtn) {
+    if (this.hasAddBtn) { // add addBtn
       const addBtnDiv = new Div(this.id + "-addBtn", ["p-2"]).html();
       addBtnDiv.appendChild(new Button(this.id + "AddBtn", "+").html());
       div.append(addBtnDiv);
     }
 
-    if (this.refDropdown != undefined) {
+    if (this.refDropdown != undefined) { // add refDropdown
       const contentReferences = new Div(this.id + "RefDropdownDiv", ["m-2"]).html();
       const title = document.createElement("p");
       const list = document.createElement("ul");
@@ -797,36 +812,68 @@ export class Item {
     return itemDiv;
   }
 
+  /**
+   * Returns the number of item.
+   * @returns number
+   */
   public getNumber(): number {
     return this.number;
   }
 
+/**
+   * Returns the id of item.
+   * @returns string
+   */
   public getId(): string {
     return this.id;
   }
 
+  /**
+   * Returns the input of item.
+   * @returns Input
+   */
   public getInput(): Input {
     return this.input;
   }
 
-  public getRefDropdown() {
+  /**
+   * Returns the refDropdown of item.
+   * @returns Dropdown | undefined
+   */
+  public getRefDropdown() : Dropdown | undefined {
     return this.refDropdown;
   }
 
-  public setHasRmvBtn(hasRmvBtn: boolean) {
-    this.hasRmvBtn = hasRmvBtn;
+  /**
+   * Returns the prefix of item.
+   * @returns string | undefined
+   */
+  public getPrefix() : string | undefined {
+    return this.prefix;
   }
 
-  public setHasAddBtn(hasAddBtn: boolean) {
-    this.hasAddBtn = hasAddBtn;
-  }
-
+  /**
+   * Returns the label of item.
+   * @returns Label
+   */
   public getLabel(): Label {
     return this.label;
   }
 
-  public getPrefix() {
-    return this.prefix;
+  /**
+   * Set the value of hasRmvBtn
+   * @param hasRmvBtn is a boolean that defines if this item has a rmvBtn
+   */
+  public setHasRmvBtn(hasRmvBtn: boolean) {
+    this.hasRmvBtn = hasRmvBtn;
+  }
+
+  /**
+   * Set the value of hasAddBtn
+   * @param hasRmvBtn is a boolean that defines if this item has a addBtn
+   */
+  public setHasAddBtn(hasAddBtn: boolean) {
+    this.hasAddBtn = hasAddBtn;
   }
 
 }
@@ -900,6 +947,7 @@ export class Dropdown {
     }
     this.options = newOptions;
   }
+
   /**
    * Returns the array of options.
    * @returns Option[]
