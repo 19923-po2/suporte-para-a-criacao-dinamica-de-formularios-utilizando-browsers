@@ -623,7 +623,6 @@ export class List {
             })
           } else if (element.textContent == "-") { // remove button
             element.addEventListener("click", () => {
-              console.log(i);
               if(i == 0  && this.items.length == 2){ // if theres 2 items left, and first is removed
                 this.items[i+1].setHasAddBtn(true);
                 this.items[i+1].setHasRmvBtn(false);
