@@ -219,7 +219,7 @@ export class Form {
    * Creates a text that shows all the contents of the form.
    * @returns string
    */
-  text(): string {
+  private text(): string {
     let string = "---- " + this.title + " ----" + "\n" +"\n"; // title text
     this.contents.forEach(element => string += element.text() + "\n"); // contents text
     return string;
