@@ -16,7 +16,8 @@ export class FormComponent implements OnInit {
     const ucForm = new Form("Planeamento da Unidades Curricular"); // create a new form
     ucForm.addLabelInputGroup("Nome da UC"); // add LabelInputGroup to form
     const list = ucForm.addList("Conteúdos"); // add List to form
-    ucForm.addList("Objetivos", "Os conteúdos importantes são: ", list); // add List with references to form
+    const objetivoslist = ucForm.addList("Objetivos", "Os conteúdos importantes são: ", list); // add List with references to form
+    ucForm.addList("Aulas", "Os objetivos importantes são: ", objetivoslist); // add List with references to form
     ucForm.show(); // Show form
   }
 }
@@ -172,7 +173,7 @@ export class Form {
 
     const saveJsonDiv = new Div("saveJsonDiv", ["d-inline", "p-2"]).html();
     const saveJsonBtn = new Button("saveJsonBtn", "Guardar Formulário").html();
-    saveJsonBtn.addEventListener("click", () => this.downloadJsonFile('Formulario.json', JSON.stringify(this))); // download json file when clicked
+    saveJsonBtn.addEventListener("click", () => this.downloadJsonFile(this.title+'.json', JSON.stringify(this))); // download json file when clicked
     saveJsonDiv.appendChild(saveJsonBtn);
 
     const uploadJsonDiv = new Div("uploadJsonDiv", ["d-inline", "p-2"]).html();
@@ -184,7 +185,7 @@ export class Form {
 
     const txtDiv = new Div("txtDiv", ["d-inline", "p-2"]).html();
     const txtBtn = new Button("saveTxtBtn", "Gerar ficheiro de Texto").html();
-    txtBtn.addEventListener("click", () => this.downloadTxtFile('Texto.txt', this.text())); // download txt file when button is clicked
+    txtBtn.addEventListener("click", () => this.downloadTxtFile(this.title+'.txt', this.text())); // download txt file when button is clicked
     txtDiv.append(txtBtn);
     buttonsDiv.append(saveJsonDiv, uploadJsonDiv, txtDiv);
 
@@ -653,12 +654,12 @@ export class List {
     let text = "\n" + "--" + this.title + "--"; // title
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
-      text += "\n" + "\n" + item.getLabel().getTextContent() + ": " + item.getInput().getValue(); // label and input of item
+      text += "\n" + "\n" + item.getLabel().getTextContent() + ":" + "\n" + item.getInput().getValue(); // label and input of item
       if (this.referenceList != undefined) { // references
         text +=  "\n" + item.getPrefix(); // prefix
         for (let i = 0; i < item.getRefDropdown()!.getOptions().length; i++) {
           if (item.getRefDropdown()!.getOptions()[i].getInput().getChecked()) {
-            text += "\n"+"-> " + item.getRefDropdown()!.getOptions()[i].getLabel().getTextContent(); // reference text
+            text += "\n" + item.getRefDropdown()!.getOptions()[i].getLabel().getTextContent(); // reference text
           }
         }
       }
@@ -764,6 +765,7 @@ export class Item {
    * @returns HTMLDivElement using the html() method from a Div object.
    */
   public html(): HTMLDivElement {
+    this.refDropdown?.updateOption();
     const itemDiv = document.createElement("div");
     itemDiv.classList.add("list-group-item", "m-2");
 
@@ -916,7 +918,6 @@ export class Dropdown {
     const aa = document.createElement("a");
     aa.classList.add("dropdown-item");
 
-    this.updateOption();
     this.options.forEach(element => {
       aa.append(element.html())
     });
@@ -930,8 +931,9 @@ export class Dropdown {
   /**
    * Updates the options of this dropdown.
    */
-  private updateOption(): void {
-    const newOptions = [];
+  public updateOption(): void {
+    const newOptions = []; 
+
     for (let i = 0; i < this.referenceList.getItems().length; i++) {
       const item = this.referenceList.getItems()[i];
       if (item.getInput().getValue() != "") {
