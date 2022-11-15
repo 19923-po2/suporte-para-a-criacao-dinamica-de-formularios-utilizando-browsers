@@ -13,7 +13,7 @@ export class FormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const ucForm = new Form("Descritor da Unidades Curricular"); // create a new form
+    const ucForm = new Form("Descritor da Unidade Curricular"); // create a new form
     ucForm.addLabelInputGroup("Curso: "); // add LabelInputGroup to form
     ucForm.addLabelInputGroup("Unidade Curricular: "); // add LabelInputGroup to form
     ucForm.addLabelInputGroup("Ano: "); // add LabelInputGroup to form
@@ -22,7 +22,7 @@ export class FormComponent implements OnInit {
     ucForm.addLabelInputGroup("Modo de Ensino: "); // add LabelInputGroup to form
     ucForm.addLabelInputGroup("Docente Responsável: "); // add LabelInputGroup to form
     const list = ucForm.addList("CONTEÚDOS PROGRAMÁTICOS"); // add List to form
-    ucForm.addList("OBJETIVOS EDUCACIONAIS", "Indicam-se seguidamente quais os conteúdos relevantes para este obtivo: ", list); // add List with references to form
+    ucForm.addList("OBJETIVOS EDUCACIONAIS", "Indicam-se seguidamente quais os conteúdos relevantes para este objetivo: ", list); // add List with references to form
     ucForm.show(); // Show form
   }
 }
